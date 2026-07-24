@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>دفتر التحضير الذكي 2.0</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>📖 دفتر التحضير الذكي</h1>
+    <p>مرحبًا بك يا معلم! اختر الصفحة التي تريد الدخول إليها:</p>
+  </header>
+
+  <nav>
+    <ul>
+      <li><a href="prepare.html">✏️ تحضير جديد</a></li>
+      <li><a href="archive.html">📚 المكتبة</a></li>
+      <!-- حذف الرابط المكرر library.html -->
+      <li><a href="settings.html">⚙️ الإعدادات</a></li>
+    </ul>
+  </nav>
+
+  <footer>
+    <p>📌 مدرسة السلام الأساسية - بإشراف المعلم: 
+      <span id="teacherName"></span>
+    </p>
+  </footer>
+
+  <script>
+    window.onload = () => {
+      document.getElementById("teacherName").textContent = localStorage.getItem("teacherName") || "غير محدد";
+    };
+  </script>
+</body>
+</html>

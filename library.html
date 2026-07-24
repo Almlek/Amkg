@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>الأرشيف</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>📚 الأرشيف</h1>
+  <table id="archiveTable">
+    <tr>
+      <th>التاريخ</th>
+      <th>المادة</th>
+      <th>عنوان الدرس</th>
+      <th>المحتوى</th>
+      <th>خيارات</th>
+    </tr>
+  </table>
+
+  <!-- أزرار لتصدير الأرشيف كامل -->
+  <button onclick="exportCSV()">⬇️ تصدير كل الأرشيف إلى CSV</button>
+  <button onclick="exportPDF()">⬇️ تصدير كل الأرشيف إلى PDF</button>
+
+  <!-- مكتبة jsPDF لتصدير PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script>
+    const archive = JSON.parse(localStorage.getItem("archive") || "[]");
+    const table = document.getElementById("archiveTable");
+
+    archive.forEach((item, index) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${item.date}</td>
+        <td>${item.subject}</td>
+        <td>${item.topic}</td>
+        <td>${item.content}</td>
+        <td>
+          <button onclick="exportLessonCSV(${index})">CSV</button>
+          <button onclick="exportLessonPDF(${index})">PDF</button>
+          <button onclick="editLesson(${index})">✏️ تعديل</button>
+          <button onclick="deleteLesson(${index})">🗑️ حذف</button>
+        </td>
+      `;
+      table.appendChild(row);
+    });
+
+    // تصدير الأرشيف كامل إلى CSV
+    function exportCSV() {
+      let csv = "التاريخ,المادة,عنوان الدرس,المحتوى\n";
+      archive.forEach(item => {
+        csv += `${item.date},${item.subject},${item.topic},"${item.content.replace(/"/g, '""')}"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "archive.csv";
+      link.click();
+    }
+
+    // تصدير الأرشيف كامل إلى PDF
+    async function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(14);
+      doc.text("📚 أرشيف الدروس", 10, 10);
+      let y = 20;
+      archive.forEach(item => {
+        doc.text(`التاريخ: ${item.date}`, 10, y);
+        doc.text(`المادة: ${item.subject}`, 10, y + 10);
+        doc.text(`العنوان: ${item.topic}`, 10, y + 20);
+        doc.text(`المحتوى: ${item.content}`, 10, y + 30, { maxWidth: 180 });
+        y += 60;
+        if (y > 270) { doc.addPage(); y = 20; }
+      });
+      doc.save("archive.pdf");
+    }
+
+    // تصدير درس واحد إلى CSV
+    function exportLessonCSV(index) {
+      const item = archive[index];
+      let csv = "التاريخ,المادة,عنوان الدرس,المحتوى\n";
+      csv += `${item.date},${item.subject},${item.topic},"${item.content.replace(/"/g, '""')}"\n`;
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${item.topic}.csv`;
+      link.click();
+    }
+
+    // تصدير درس واحد إلى PDF
+    function exportLessonPDF(index) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const item = archive[index];
+      doc.setFontSize(14);
+      doc.text("📚 خطة درس", 10, 10);
+      doc.text(`التاريخ: ${item.date}`, 10, 20);
+      doc.text(`المادة: ${item.subject}`, 10, 30);
+      doc.text(`العنوان: ${item.topic}`, 10, 40);
+      doc.text(`المحتوى: ${item.content}`, 10, 60, { maxWidth: 180 });
+      doc.save(`${item.topic}.pdf`);
+    }
+
+    // تعديل درس
+    function editLesson(index) {
+      const item = archive[index];
+      const newContent = prompt("✏️ أدخل المحتوى الجديد:", item.content);
+      if (newContent !== null) {
+        archive[index].content = newContent;
+        localStorage.setItem("archive", JSON.stringify(archive));
+        alert("✅ تم تعديل الدرس بنجاح!");
+        location.reload();
+      }
+    }
+
+    // حذف درس
+    function deleteLesson(index) {
+      if (confirm("🗑️ هل تريد حذف هذا الدرس؟")) {
+        archive.splice(index, 1);
+        localStorage.setItem("archive", JSON.stringify(archive));
+        alert("✅ تم حذف الدرس!");
+        location.reload();
+      }
+    }
+  </script>
+</body>
+</html>
