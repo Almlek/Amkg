@@ -2,29 +2,90 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تحضير درس جديد</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>✏️ تحضير درس جديد</h1>
+  <header>
+    <h1>✏️ تحضير درس جديد</h1>
+    <p>قم بتوليد خطة درس متكاملة بالذكاء الاصطناعي خلال ثوانٍ</p>
+  </header>
 
-  <div class="form-section">
+  <nav>
+    <ul>
+      <li><a href="index.html">🏠 الرئيسية</a></li>
+      <li><a href="prepare.html" class="active">✏️ تحضير جديد</a></li>
+      <li><a href="archive.html">📚 المكتبة</a></li>
+      <li><a href="settings.html">⚙️ الإعدادات</a></li>
+    </ul>
+  </nav>
+
+  <div class="form-section card">
+    <h2>📋 مدخلات خطة الدرس</h2>
     <form id="lessonForm">
-      <label>الصف: <input name="grade"></label>
-      <label>المادة: <input name="subject"></label>
-      <label>عنوان الدرس: <input name="topic"></label>
-      <label>التاريخ: <input name="date" type="date"></label>
-      <button type="submit">توليد خطة بالذكاء الاصطناعي (Gemini)</button>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="grade">الصف:</label>
+          <input id="grade" name="grade" placeholder="مثال: الصف الخامس" required>
+        </div>
+        <div class="form-group">
+          <label for="subject">المادة الدراسية:</label>
+          <input id="subject" name="subject" placeholder="مثال: الرياضيات" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="topic">عنوان الدرس:</label>
+          <input id="topic" name="topic" placeholder="مثال: الكسور العشرية" required>
+        </div>
+        <div class="form-group">
+          <label for="date">التاريخ:</label>
+          <input id="date" name="date" type="date" required>
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn" class="primary-btn">✨ توليد خطة بالذكاء الاصطناعي (Gemini)</button>
     </form>
   </div>
 
-  <div class="lesson" id="lessonResult">
+  <div class="lesson card" id="lessonResult">
     <p style="text-align:center; color:#888;">سيظهر هنا محتوى الدرس بعد توليده...</p>
   </div>
 
+  <footer>
+    <p>📌 دفتر التحضير الذكي - جميع الحقوق محفوظة للمعلمين</p>
+  </footer>
+
   <script>
+    // وضع تاريخ اليوم كقيمة افتراضية
+    document.getElementById('date').valueAsDate = new Date();
+
     const form = document.getElementById('lessonForm');
     const resultDiv = document.getElementById('lessonResult');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function simpleMarkdownToHtml(text) {
+      if (!text) return "";
+      let formatted = text
+        .replace(/### (.*)/g, '<h3>$1</h3>')
+        .replace(/## (.*)/g, '<h2>$1</h2>')
+        .replace(/# (.*)/g, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^- (.*)/gm, '<li>$1</li>')
+        .replace(/\n/g, '<br>');
+
+      // wrap list items in lists
+      if (formatted.includes('<li>')) {
+        formatted = formatted.replace(/(<li>.*<\/li>)/gs, '<ul>$1<\/ul>');
+      }
+      return formatted;
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -33,43 +94,96 @@
 
       if (!apiKey) {
         alert("⚠️ أدخل مفتاح API أولاً من صفحة الإعدادات");
+        window.location.href = "settings.html";
         return;
       }
 
-      const prompt = `أنشئ خطة درس للصف ${data.grade} في مادة ${data.subject} بعنوان "${data.topic}" تشمل الأهداف، دور المعلم والمتعلم، والتقويم.`;
+      // تهيئة حالة التحميل
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `⏳ جاري التوليد وكتابة الخطة...`;
+      resultDiv.innerHTML = `
+        <div class="loading-container">
+          <div class="spinner"></div>
+          <p>⏳ جاري التوليد باستخدام الذكاء الاصطناعي (Gemini)... يرجى الانتظار قليلاً.</p>
+        </div>
+      `;
+
+      const prompt = `أنت معلم خبير ومحترف. أنشئ خطة درس نموذجية ومفصلة باللغة العربية للصف ${data.grade} في مادة ${data.subject} بعنوان "${data.topic}" تشمل:
+1. الأهداف التعليمية السلوكية (المعرفية، الوجدانية، المهارية).
+2. الوسائل التعليمية ومصادر التعلم المستخدمة.
+3. التمهيد والتهيئة الحافزة للدرس.
+4. عرض الدرس ودور المعلم ودور المتعلم في كل نشاط.
+5. استراتيجيات التدريس النشط المقترحة.
+6. التقويم التكويني والنهائي وأسئلة قياس الفهم.
+7. الواجب البيتي والنشاط الإثرائي.`;
 
       try {
-        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + apiKey
+            "x-goog-api-key": apiKey
           },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }]
           })
         });
 
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error ? errData.error.message : "خطأ غير معروف في الاتصال بـ Gemini";
+          throw new Error(errMsg);
+        }
+
         const result = await response.json();
-        const lessonText = result.candidates[0].content.parts[0].text;
 
-        // عرض النتيجة
-        resultDiv.innerHTML = `<h3>خطة الدرس:</h3><p>${lessonText}</p>`;
+        if (result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts[0]) {
+          const lessonText = result.candidates[0].content.parts[0].text;
+          const formattedHtml = simpleMarkdownToHtml(lessonText);
 
-        // حفظ الدرس في الأرشيف
-        const archive = JSON.parse(localStorage.getItem("archive") || "[]");
-        archive.push({
-          date: data.date,
-          subject: data.subject,
-          topic: data.topic,
-          content: lessonText
-        });
-        localStorage.setItem("archive", JSON.stringify(archive));
+          // عرض النتيجة
+          resultDiv.innerHTML = `
+            <div class="lesson-header-print">
+              <h2>خطة الدرس: ${data.topic}</h2>
+              <p><strong>الصف:</strong> ${data.grade} | <strong>المادة:</strong> ${data.subject} | <strong>التاريخ:</strong> ${data.date}</p>
+            </div>
+            <div class="lesson-content-body">
+              ${formattedHtml}
+            </div>
+            <div class="action-buttons-container no-print">
+              <button onclick="window.print()" class="print-btn">🖨️ طباعة الخطة أو حفظها كـ PDF</button>
+            </div>
+          `;
 
-        alert("✅ تم حفظ الدرس في الأرشيف بنجاح!");
+          // حفظ الدرس في الأرشيف مع الصف (grade)
+          const archive = JSON.parse(localStorage.getItem("archive") || "[]");
+          archive.push({
+            date: data.date,
+            subject: data.subject,
+            topic: data.topic,
+            grade: data.grade,
+            content: lessonText
+          });
+          localStorage.setItem("archive", JSON.stringify(archive));
+
+          alert("✅ تم حفظ الدرس في الأرشيف بنجاح!");
+        } else {
+          throw new Error("لم يتم إرجاع محتوى من النموذج، يرجى المحاولة مرة أخرى.");
+        }
+
       } catch (error) {
-        alert("❌ حدث خطأ أثناء الاتصال بـ Google Gemini");
+        alert("❌ حدث خطأ أثناء الاتصال بـ Google Gemini:\n" + error.message);
+        resultDiv.innerHTML = `
+          <div class="status-box error">
+            <p>❌ <strong>فشل توليد الخطة:</strong></p>
+            <p>${error.message}</p>
+            <p style="font-size: 14px;">يرجى التأكد من صحة مفتاح الـ API في صفحة الإعدادات والمحاولة مجدداً.</p>
+          </div>
+        `;
         console.error(error);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `✨ توليد خطة بالذكاء الاصطناعي (Gemini)`;
       }
     });
   </script>

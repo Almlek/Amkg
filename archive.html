@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المكتبة والأرشيف</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>📚 مكتبة الدروس المحفوظة</h1>
+    <p>أرشيف متكامل للدروس التي تم توليدها وتعديلها</p>
+  </header>
+
+  <nav class="no-print">
+    <ul>
+      <li><a href="index.html">🏠 الرئيسية</a></li>
+      <li><a href="prepare.html">✏️ تحضير جديد</a></li>
+      <li><a href="archive.html" class="active">📚 المكتبة</a></li>
+      <li><a href="settings.html">⚙️ الإعدادات</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <!-- محرك البحث وتصدير الأرشيف -->
+    <div class="archive-actions card no-print">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 ابحث بالدرس، المادة، أو الصف...">
+      </div>
+      <div class="export-buttons">
+        <button onclick="exportCSV()" class="btn success-btn">⬇️ تصدير الأرشيف لـ CSV</button>
+        <button onclick="window.print()" class="btn info-btn">🖨️ طباعة الأرشيف بالكامل</button>
+      </div>
+    </div>
+
+    <!-- جدول الأرشيف -->
+    <div class="table-container card">
+      <table id="archiveTable">
+        <thead>
+          <tr>
+            <th style="width: 12%">التاريخ</th>
+            <th style="width: 12%">الصف</th>
+            <th style="width: 15%">المادة</th>
+            <th style="width: 25%">عنوان الدرس</th>
+            <th style="width: 20%">المحتوى</th>
+            <th style="width: 16%">خيارات</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- سيتم بناؤه برمجياً -->
+        </tbody>
+      </table>
+      <div id="noDataMessage" class="no-data-msg" style="display: none;">
+        📂 لا توجد دروس محفوظة حالياً. ابدأ بتحضير أول درس لك!
+      </div>
+    </div>
+  </main>
+
+  <footer class="no-print">
+    <p>📌 دفتر التحضير الذكي - جميع الحقوق محفوظة للمعلمين</p>
+  </footer>
+
+  <script>
+    let archive = JSON.parse(localStorage.getItem("archive") || "[]");
+    const tableBody = document.getElementById("tableBody");
+    const noDataMessage = document.getElementById("noDataMessage");
+    const searchInput = document.getElementById("searchInput");
+
+    // دالة لعرض الجدول بناءً على مصفوفة معينة
+    function renderTable(lessonsList) {
+      tableBody.innerHTML = "";
+
+      if (lessonsList.length === 0) {
+        noDataMessage.style.display = "block";
+        document.getElementById("archiveTable").style.display = "none";
+        return;
+      }
+
+      noDataMessage.style.display = "none";
+      document.getElementById("archiveTable").style.display = "table";
+
+      lessonsList.forEach((item, originalIndex) => {
+        // العثور على المؤشر الحقيقي في المصفوفة الأصلية
+        const index = archive.findIndex(x => x.topic === item.topic && x.date === item.date && x.content === item.content);
+
+        const row = document.createElement("tr");
+
+        // تقصير المحتوى للمشاهدة
+        const contentPreview = item.content.length > 100
+          ? item.content.substring(0, 100) + "..."
+          : item.content;
+
+        row.innerHTML = `
+          <td>${item.date || '-'}</td>
+          <td><span class="badge grade-badge">${item.grade || 'غير محدد'}</span></td>
+          <td><span class="badge subject-badge">${item.subject || '-'}</span></td>
+          <td class="topic-title"><strong>${item.topic || '-'}</strong></td>
+          <td class="text-start content-cell" title="اضغط تعديل لمشاهدة وتعديل النص كاملاً">
+            <div class="content-preview-box">${contentPreview}</div>
+          </td>
+          <td>
+            <div class="options-group no-print">
+              <button onclick="printLesson(${index})" class="btn-sm btn-print" title="طباعة">🖨️ طباعة</button>
+              <button onclick="exportLessonCSV(${index})" class="btn-sm btn-csv" title="تصدير Excel">CSV</button>
+              <button onclick="editLesson(${index})" class="btn-sm btn-edit" title="تعديل">✏️ تعديل</button>
+              <button onclick="deleteLesson(${index})" class="btn-sm btn-delete" title="حذف">🗑️ حذف</button>
+            </div>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    // تصفية الدروس
+    function filterLessons() {
+      const query = searchInput.value.toLowerCase().trim();
+      const filtered = archive.filter(item => {
+        return (item.topic || "").toLowerCase().includes(query) ||
+               (item.subject || "").toLowerCase().includes(query) ||
+               (item.grade || "").toLowerCase().includes(query) ||
+               (item.date || "").toLowerCase().includes(query);
+      });
+      renderTable(filtered);
+    }
+
+    searchInput.addEventListener("input", filterLessons);
+
+    // تصدير الأرشيف كامل إلى CSV مع دعم الترميز العربي UTF-8 BOM
+    function exportCSV() {
+      if (archive.length === 0) {
+        alert("⚠️ لا يوجد بيانات لتصديرها.");
+        return;
+      }
+      let csv = "التاريخ,الصف,المادة,عنوان الدرس,المحتوى\n";
+      archive.forEach(item => {
+        const gradeStr = item.grade || "غير محدد";
+        const cleanContent = item.content ? item.content.replace(/"/g, '""') : "";
+        csv += `${item.date || ''},${gradeStr},${item.subject || ''},${item.topic || ''},"${cleanContent}"\n`;
+      });
+      // إضافة BOM لجعل Excel يفتح العربي بشكل صحيح
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "archive_lessons.csv";
+      link.click();
+    }
+
+    // تصدير درس واحد إلى CSV
+    function exportLessonCSV(index) {
+      const item = archive[index];
+      let csv = "التاريخ,الصف,المادة,عنوان الدرس,المحتوى\n";
+      const gradeStr = item.grade || "غير محدد";
+      const cleanContent = item.content ? item.content.replace(/"/g, '""') : "";
+      csv += `${item.date || ''},${gradeStr},${item.subject || ''},${item.topic || ''},"${cleanContent}"\n`;
+
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${item.topic || 'lesson'}.csv`;
+      link.click();
+    }
+
+    // طباعة درس مفرد بتنسيق رائع
+    function printLesson(index) {
+      const item = archive[index];
+      const printWindow = window.open('', '_blank');
+
+      // تبديل أسطر النص العادي إلى سطور HTML
+      const formattedContent = item.content
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <title>طباعة: ${item.topic}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+          <style>
+            body { font-family: 'Cairo', sans-serif; padding: 40px; line-height: 1.8; direction: rtl; background: #fff; color: #333; }
+            .print-container { max-width: 800px; margin: 0 auto; border: 1px solid #ddd; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+            .header { text-align: center; border-bottom: 3px double #4b2e83; padding-bottom: 15px; margin-bottom: 25px; }
+            .header h1 { color: #4b2e83; margin: 0; font-size: 24px; }
+            .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; background: #f9f9fc; padding: 15px; border-radius: 6px; margin-bottom: 25px; border: 1px solid #eef; }
+            .meta-item { font-size: 15px; }
+            .meta-item strong { color: #4b2e83; }
+            .content-body { font-size: 15px; text-align: justify; }
+            .no-print-bar { display: flex; justify-content: center; margin-bottom: 20px; }
+            .btn { background: #4b2e83; color: white; padding: 8px 24px; font-family: 'Cairo', sans-serif; border: none; border-radius: 4px; font-size: 15px; cursor: pointer; transition: 0.2s; }
+            .btn:hover { background: #3a2368; }
+            @media print {
+              .no-print-bar { display: none; }
+              body { padding: 0; }
+              .print-container { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print-bar">
+            <button onclick="window.print()" class="btn">🖨️ ابدأ الطباعة الآن</button>
+          </div>
+          <div class="print-container">
+            <div class="header">
+              <h1>📝 خطة تحضير الدرس النموذجية</h1>
+            </div>
+            <div class="meta-grid">
+              <div class="meta-item"><strong>عنوان الدرس:</strong> ${item.topic || '-'}</div>
+              <div class="meta-item"><strong>المادة الدراسية:</strong> ${item.subject || '-'}</div>
+              <div class="meta-item"><strong>الصف الدراسي:</strong> ${item.grade || 'غير محدد'}</div>
+              <div class="meta-item"><strong>تاريخ التحضير:</strong> ${item.date || '-'}</div>
+            </div>
+            <div class="content-body">
+              ${formattedContent}
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    // تعديل محتوى درس
+    function editLesson(index) {
+      const item = archive[index];
+      const newContent = prompt("✏️ تعديل محتوى الدرس:", item.content);
+      if (newContent !== null) {
+        archive[index].content = newContent;
+        localStorage.setItem("archive", JSON.stringify(archive));
+        alert("✅ تم تعديل الدرس بنجاح!");
+        filterLessons(); // إعادة التحميل/التحديث
+      }
+    }
+
+    // حذف درس من الأرشيف
+    function deleteLesson(index) {
+      if (confirm("🗑️ هل أنت متأكد من رغبتك في حذف هذا الدرس نهائياً؟")) {
+        archive.splice(index, 1);
+        localStorage.setItem("archive", JSON.stringify(archive));
+        alert("✅ تم الحذف بنجاح!");
+        filterLessons(); // تحديث الجدول
+      }
+    }
+
+    // العرض الأولي للجدول
+    window.onload = () => {
+      renderTable(archive);
+    };
+  </script>
+</body>
+</html>
